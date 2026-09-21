@@ -1,0 +1,13 @@
+Net Revenue = SUM(fact_sales[net_revenue])
+Gross Revenue = SUM(fact_sales[gross_revenue])
+Return Value = SUM(fact_sales[return_value])
+Orders = DISTINCTCOUNT(fact_sales[order_id])
+Active Customers = DISTINCTCOUNT(fact_sales[customer_key])
+Average Order Value = DIVIDE([Net Revenue], [Orders])
+Return Rate = DIVIDE(SUM(fact_sales[returned_quantity]), SUM(fact_sales[quantity]))
+
+Returning Customers =
+COUNTROWS(FILTER(VALUES(dim_customer[customer_key]), CALCULATE([Orders]) > 1))
+
+Returning Customer Share = DIVIDE([Returning Customers], [Active Customers])
+

@@ -1,0 +1,8 @@
+customer_id,customer_name,email,region,joined_date
+C001,Aisha Khan,aisha@example.com,North,2024-11-18
+C002,Tom Hughes,tom@example.com,South,2024-12-02
+C003,Maya Patel,maya@example.com,London,2025-01-10
+C004,Daniel Reed,daniel@example.com,Midlands,2025-01-20
+C005,Sophie Green,sophie@example.com,North,2025-02-03
+C006,Marcus Bell,marcus@example.com,Scotland,2025-03-14
+
