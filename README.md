@@ -39,3 +39,9 @@ record a batch ID on every fact row. Add effective dates to dimensions only when
 business needs historical attribute reporting. More machinery is not automatically a
 better model.
 
+
+## View the report
+
+After building the warehouse, run `python scripts/build_report.py` and open
+[the standalone report](docs/report.html). It includes monthly performance, customer
+summaries and product performance from the actual exports. Regenerate it after a build.
