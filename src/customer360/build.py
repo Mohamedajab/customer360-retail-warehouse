@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import os
 import sqlite3
+import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -52,25 +54,30 @@ def export_query(connection: sqlite3.Connection, query: str, path: Path) -> None
 
 
 def build(database: Path, export_dir: Path) -> None:
-    if database.exists():
-        database.unlink()
-    connection = sqlite3.connect(database)
-    connection.execute("PRAGMA foreign_keys = ON")
-    try:
-        run_sql(connection, ROOT / "sql/01_schema.sql")
-        seed_dates(connection, date(2025, 1, 1), date(2025, 12, 31))
-        source = ROOT / "data/source"
-        load_csv(connection, source / "customers.csv", "stage_customers")
-        load_csv(connection, source / "products.csv", "stage_products")
-        load_csv(connection, source / "transactions.csv", "stage_transactions")
-        run_sql(connection, ROOT / "sql/02_load.sql")
-        run_sql(connection, ROOT / "sql/03_views.sql")
-        connection.commit()
-        export_query(connection, "SELECT * FROM vw_monthly_performance", export_dir / "monthly_performance.csv")
-        export_query(connection, "SELECT * FROM vw_customer_summary", export_dir / "customer_summary.csv")
-        export_query(connection, "SELECT * FROM vw_product_performance", export_dir / "product_performance.csv")
-    finally:
-        connection.close()
+    with tempfile.TemporaryDirectory(dir=database.parent) as temporary_dir:
+        temporary_database = Path(temporary_dir) / database.name
+        connection = sqlite3.connect(temporary_database)
+        connection.execute("PRAGMA foreign_keys = ON")
+        try:
+            run_sql(connection, ROOT / "sql/01_schema.sql")
+            seed_dates(connection, date(2025, 1, 1), date(2025, 12, 31))
+            source = ROOT / "data/source"
+            load_csv(connection, source / "customers.csv", "stage_customers")
+            load_csv(connection, source / "products.csv", "stage_products")
+            load_csv(connection, source / "transactions.csv", "stage_transactions")
+            run_sql(connection, ROOT / "sql/02_load.sql")
+            staged = connection.execute("SELECT COUNT(*) FROM stage_transactions").fetchone()[0]
+            loaded = connection.execute("SELECT COUNT(*) FROM fact_sales").fetchone()[0]
+            if staged != loaded:
+                raise ValueError(f"{staged - loaded} transaction lines could not be loaded")
+            run_sql(connection, ROOT / "sql/03_views.sql")
+            connection.commit()
+            export_query(connection, "SELECT * FROM vw_monthly_performance", export_dir / "monthly_performance.csv")
+            export_query(connection, "SELECT * FROM vw_customer_summary", export_dir / "customer_summary.csv")
+            export_query(connection, "SELECT * FROM vw_product_performance", export_dir / "product_performance.csv")
+        finally:
+            connection.close()
+        os.replace(temporary_database, database)
 
 
 def main() -> None:
